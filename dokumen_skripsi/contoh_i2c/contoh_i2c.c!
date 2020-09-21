@@ -1,0 +1,5 @@
+VERSION:1 SOURCE_TIMESTAMP:4054A3C2
+NODE:I LEVEL:0 LINE:10 "c:\cvavreval\inc\mega8535.h"
+NODE:I LEVEL:0 LINE:11 "c:\cvavreval\inc\delay.h"
+NODE:I LEVEL:0 LINE:18 "c:\cvavreval\inc\lcd.h"
+NODE:I LEVEL:0 LINE:26 "c:\cvavreval\inc\i2c.h"

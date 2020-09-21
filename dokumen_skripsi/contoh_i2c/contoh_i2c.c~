@@ -1,0 +1,146 @@
+/*****************************************************
+Chip type           : ATmega8535
+Program type        : Application
+Clock frequency     : 4,000000 MHz
+Memory model        : Small
+External SRAM size  : 0
+Data Stack size     : 128
+*****************************************************/
+
+#include <mega8535.h>   
+#include <delay.h>
+
+
+// Alphanumeric LCD Module functions
+#asm
+   .equ __lcd_port=0x15 ;PORTC
+#endasm
+#include <lcd.h>
+
+// I2C Bus functions
+#asm
+   .equ __i2c_port=0x12 ;PORTD
+   .equ __sda_bit=2
+   .equ __scl_bit=3
+#endasm
+#include <i2c.h>
+
+// Declare your global variables here   
+#define rxpin   PINA.1
+#define rxport  PORTA.1
+#define dirrx   DDRA.1
+#define txport  PORTA.0
+#define dirtx   DDRA.0
+
+#define bauduart 38400
+#define gaptx (1000000/bauduart)-5//5
+#define gaprx (1000000/bauduart)-8//10
+#define gapseparo (500000/bauduart)//-1
+
+void inituart(void) {
+   dirrx    = 0;
+   rxport   = 1;
+   dirtx    = 1;
+   txport   = 1;
+}
+
+void txsend(unsigned char datatx) {
+   unsigned char i;
+   
+   //#asm("cli");
+   i=0;  
+   txport = 0;
+   delay_us(gaptx);
+   do {
+      txport = (datatx & 1);
+      datatx >>= 1;   
+      i++;
+      delay_us(gaptx);
+   } while(i<8);
+   txport = 1;
+   delay_us(gaptx);
+   //#asm("sei");   
+}
+
+
+unsigned int bacaNilaiSensorI2C(unsigned char alamatI2C) {
+   unsigned int sensor;   
+  
+   i2c_start();  
+   i2c_write(alamatI2C);         
+   i2c_write(0x41);                 
+   i2c_stop();  
+   
+   delay_us(10);
+   
+   i2c_start();  
+   i2c_write(alamatI2C|0x01);              
+   sensor = i2c_read(1);
+   sensor = sensor*256 + i2c_read(0);
+   i2c_stop();
+   return sensor;
+}
+
+unsigned int bacaNilaiVRI2C(unsigned char alamatI2C) {
+   unsigned int sensor;   
+  
+   i2c_start();  
+   i2c_write(alamatI2C);         
+   i2c_write(0x42);                 
+   i2c_stop();  
+   
+   delay_us(10);
+   
+   i2c_start();  
+   i2c_write(alamatI2C|0x01);              
+   sensor = i2c_read(1);
+   sensor = sensor*256 + i2c_read(0);
+   i2c_stop();
+   return sensor;
+}
+
+
+
+void main(void)
+{
+// Declare your local variables here
+unsigned int sensor; 
+
+// I2C Bus initialization
+i2c_init();
+
+// LCD module initialization
+//lcd_init(16);
+inituart();
+txsend(65);
+while (1)
+      {
+      // Place your code here     
+      sensor = bacaNilaiSensorI2C(0xE0);  
+      //lcd_gotoxy(0,0);
+      //lcd_putsf("Data = ");
+      //lcd_putchar(sensor/1000 %10 + 0x30);  
+      //lcd_putchar(sensor/100 %10 + 0x30);
+      //lcd_putchar(sensor/10 %10 + 0x30);
+      //lcd_putchar(sensor %10 + 0x30);  
+      
+      txsend(sensor/1000 %10 + 0x30);  
+      txsend(sensor/100 %10 + 0x30);
+      txsend(sensor/10 %10 + 0x30);
+      txsend(sensor %10 + 0x30);   
+      txsend(13);
+
+      sensor = bacaNilaiVRI2C(0xE0); 
+      txsend(sensor/1000 %10 + 0x30);  
+      txsend(sensor/100 %10 + 0x30);
+      txsend(sensor/10 %10 + 0x30);
+      txsend(sensor %10 + 0x30);   
+      txsend(13);
+      
+      delay_ms(500);
+  
+      };
+}
+
+
+
